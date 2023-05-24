@@ -19,17 +19,14 @@ class FileLockerGui: #Created class FileLockerGui for the gui
         self.logo.pack()
 
 
-        self.operation = tk.StringVar(value="Choose an Option")
-        self.button_frame = ttk.LabelFrame(root, text="Test")
-        self.button_frame.pack(pady=5)
-        self.encrypt_button = ttk.Radiobutton(self.button_frame, text = "Encrypt", variable = self.operation, value = "Encrypt")
-        self.encrypt_button.grid(column=1, row=1)
-        self.decrypt_button = ttk.Radiobutton(self.button_frame, text = "Decrypt", variable = self.operation, value = "Decrypt")
-        self.decrypt_button.grid(column=2, row=1)
+        self.file_select = ttk.Button(root, text = "Select File", command = self.select_file)
+        self.file_select.pack(pady=5)
     
+        self.filepath_display = tk.Label(root, text = "No file selected.")
+        self.filepath_display.pack()
 
         self.password_frame = ttk.Frame(root)
-        self.password_frame.pack(pady=5, padx=10)
+        self.password_frame.pack(padx=10)
 
         self.password_label = tk.Label(self.password_frame, text = "Enter Password")
         self.password_label.grid(column=1, row=1)
@@ -43,15 +40,18 @@ class FileLockerGui: #Created class FileLockerGui for the gui
 
 
 
-        self.file_select = ttk.Button(root, text = "Select File", command = self.select_file)
-        self.file_select.pack(pady=5)
+        self.operation = tk.StringVar(value="Choose an Option")
+        self.button_frame = ttk.Frame(root)
+        self.button_frame.pack(pady=5)
+        self.encrypt_button = ttk.Radiobutton(self.button_frame, text = "Encrypt", variable = self.operation, value = "Encrypt")
+        self.encrypt_button.grid(column=1, row=1)
+        self.decrypt_button = ttk.Radiobutton(self.button_frame, text = "Decrypt", variable = self.operation, value = "Decrypt")
+        self.decrypt_button.grid(column=2, row=1)
+
 
         self.process_button = ttk.Button(root, textvariable=self.operation)
-        self.process_button.pack()
+        self.process_button.pack(pady=5)
 
-
-        self.filepath_display = tk.Label(root, text = "")
-        self.filepath_display.pack()
 
 
 
