@@ -1,4 +1,3 @@
-import time
 import os
 from hashlib import sha256
 import tkinter as tk
@@ -11,34 +10,34 @@ class FileLockerGui: #Created class FileLockerGui for the gui
     def __init__(self, root):
         self.root = root 
         root.title("FileLocker") #Name the window to "FileLocker"
-
-        root.minsize(250, 0) #The minimum width is 400px
+        root.minsize(300, 0) #The minimum width is 400px
         root.resizable(0,0) #You can not resize the window
 
-        self.logo = tk.Label(root)
-        self.logo.pack()
-
-
-        self.file_select = ttk.Button(root, text = "Select File", command = self.select_file)
+        self.file_path = None
+        self.file_select = ttk.Button(root, text = "Select File", command = self.select_file) #file select button
         self.file_select.pack(pady=5)
     
-        self.filepath_display = tk.Label(root, text = "No file selected.")
+        self.filepath_display = tk.Label(root, text = "No file selected.") 
         self.filepath_display.pack()
 
-        self.password_frame = ttk.Frame(root)
-        self.password_frame.pack(padx=10)
 
-        self.password_label = tk.Label(self.password_frame, text = "Enter Password")
-        self.password_label.grid(column=1, row=1)
+        self.key_frame = ttk.Frame(root)
+        self.key_frame.pack(padx=10)
 
-        self.password_entry = tk.Entry(self.password_frame, show = "*")
-        self.password_entry.grid(column=1,row=2)
+        self.key_label = tk.Label(self.key_frame, text = "Key:")
+        self.key_label.grid(column=1, row=1)
 
-        self.show_password = tk.IntVar()
-        self.show_password_checkbox = ttk.Checkbutton(self.password_frame, text = "Show Password", variable=self.show_password, command = self.toggle_password_visibility)
-        self.show_password_checkbox.grid(column=2, row=2)
+        self.key_entry = tk.Entry(self.key_frame, show = "*")
+        self.key_entry.grid(column=2,row=1)
 
+        self.show_key = tk.IntVar()
+        self.show_key_checkbox = ttk.Checkbutton(self.key_frame, text = "Show Key", variable=self.show_key, command = self.toggle_key_visibility)
+        self.show_key_checkbox.grid(column=2, row=2)
 
+        self.input_frame = ttk.LabelFrame(root, text = "Input Text")
+        self.input_frame.pack(pady=5)
+        self.input = ttk.Entry(self.input_frame)
+        self.input.pack()
 
         self.operation = tk.StringVar(value="Choose an Option")
         self.button_frame = ttk.Frame(root)
@@ -49,19 +48,16 @@ class FileLockerGui: #Created class FileLockerGui for the gui
         self.decrypt_button.grid(column=2, row=1)
 
 
-        self.process_button = ttk.Button(root, textvariable=self.operation)
+        self.process_button = ttk.Button(root, textvariable=self.operation, command=self.process)
         self.process_button.pack(pady=5)
 
 
-
-
-
-    def toggle_password_visibility(self):
-        """Toggle password visibility based on checkbox state"""
-        if self.show_password.get() == 1:
-            self.password_entry.configure(show = "")
+    def toggle_key_visibility(self):
+        """Toggle key visibility based on checkbox state"""
+        if self.show_key.get() == 1:
+            self.key_entry.configure(show = "")
         else:
-            self.password_entry.configure(show = "*")
+            self.key_entry.configure(show = "*")
     
     def select_file(self):
 
@@ -69,38 +65,36 @@ class FileLockerGui: #Created class FileLockerGui for the gui
         self.filepath_display.configure(text = self.file_path)
     
     def process(self):
-
-        password = self.password_entry.get()
-        if self.file_path and password:
-            operation = self.operation_var.get()
+        self.inputvalue = self.input.get()
+        if self.key_entry.get() != "":
+            self.keyvalue = self.key_entry.get()
+        if self.file_path and self.keyvalue:
+            operation = self.operation.get()
             if operation == "Encrypt":
-                self.encrypt(self.file_path)
-                pass
+
+                self.encrypt()
             elif operation == "Decrypt":
                 # Perform decryption on selected file
                 pass
-            # Display success message
-            tk.messagebox.showinfo("Success", f"File {operation}ed successfully!")
+            # tk.messagebox.showinfo("Success", f"File {operation}ed successfully!")
         else:
-            # Display error message if file path or password is not provided
-            tk.messagebox.showerror("Error", "Please provide a file and password.")
+            # Display error message if file path or key is not provided
+            tk.messagebox.showerror("Error", "Please provide a file and key.")
 
-    def encrypt(self, filepath):
-        plaintext = bytes(input('Enter Data you want to encrypt:\n> '), "utf-8")
+    def encrypt(self):    
+        #MAKE THIS TAKE A FILE 
 
-        pw = input('Enter Password:\n> ')
-        pw = pw.encode("utf-8")
-        key = sha256(pw).digest()
+        plaintext = self.inputvalue.encode("utf-8")
+        key = sha256(self.keyvalue.encode("utf-8")).digest()
 
         cipher = AES.new(key, AES.MODE_ECB)
-        if len(plaintext) % AES.block_size == 0:
-            return
-        else:
+        if len(plaintext) % AES.block_size != 0:
             plaintext = plaintext + b'\0' * (AES.block_size - len(plaintext) % AES.block_size)
+
+
         ciphertext = cipher.encrypt(plaintext)
-        base64_ciphertextbytes = base64.b64encode(ciphertext)
-        base64_ciphertext = base64_ciphertextbytes.decode("utf-8")
-        print(base64_ciphertext)
+        base64_ciphertext = base64.b64encode(ciphertext).decode("utf-8") #Encode the bytes in base64 and decode the base64 bytes into string
+        tk.messagebox.showinfo("Success", "Encrypted String: " + base64_ciphertext)
 
     
 
@@ -109,7 +103,7 @@ class FileLockerGui: #Created class FileLockerGui for the gui
 def decrypt():
     base64_ciphertext = input('Enter Data you want to decrypt:\n> ')
     ciphertext = base64.b64decode(base64_ciphertext)
-    pw = input('Enter Password:\n> ')
+    pw = input('Enter key:\n> ')
     pw = pw.encode("utf-8")
     key = sha256(pw).digest()
 
