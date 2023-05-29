@@ -6,7 +6,9 @@ from tkinter import filedialog
 from Crypto.Cipher import AES
 import base64
 
-class FileLockerGui: #Created class FileLockerGui for the gui
+
+class FileLockerGui: 
+    """Class used for the tkinter gui"""
     def __init__(self, root):
         self.root = root 
         root.title("FileLocker") #Name the window to "FileLocker"
@@ -15,29 +17,24 @@ class FileLockerGui: #Created class FileLockerGui for the gui
 
         self.file_path = None
         self.file_select = ttk.Button(root, text = "Select File", command = self.select_file) #file select button
-        self.file_select.pack(pady=5)
+        self.file_select.pack(pady=5) 
     
-        self.filepath_display = tk.Label(root, text = "No file selected.") 
+        self.filepath_display = tk.Label(root, text = "No file selected.") #displays the filepath of the selected file
         self.filepath_display.pack()
 
 
         self.key_frame = ttk.Frame(root)
         self.key_frame.pack(padx=10)
 
-        self.key_label = tk.Label(self.key_frame, text = "Key:")
+        self.key_label = tk.Label(self.key_frame, text = "Key:") 
         self.key_label.grid(column=1, row=1)
 
-        self.key_entry = tk.Entry(self.key_frame, show = "*")
+        self.key_entry = tk.Entry(self.key_frame, show = "*") #password entry
         self.key_entry.grid(column=2,row=1)
 
         self.show_key = tk.IntVar()
-        self.show_key_checkbox = ttk.Checkbutton(self.key_frame, text = "Show Key", variable=self.show_key, command = self.toggle_key_visibility)
+        self.show_key_checkbox = ttk.Checkbutton(self.key_frame, text = "Show Key", variable=self.show_key, command = self.toggle_key_visibility) #password show button
         self.show_key_checkbox.grid(column=2, row=2)
-
-        self.input_frame = ttk.LabelFrame(root, text = "Input Text")
-        self.input_frame.pack(pady=5)
-        self.input = ttk.Entry(self.input_frame)
-        self.input.pack()
 
         self.operation = tk.StringVar(value="Choose an Option")
         self.button_frame = ttk.Frame(root)
@@ -60,12 +57,12 @@ class FileLockerGui: #Created class FileLockerGui for the gui
             self.key_entry.configure(show = "*")
     
     def select_file(self):
-
+        """Open windows file select"""
         self.file_path = filedialog.askopenfilename() 
         self.filepath_display.configure(text = self.file_path)
     
     def process(self):
-        self.inputvalue = self.input.get()
+
         if self.key_entry.get() != "":
             self.keyvalue = self.key_entry.get()
         if self.file_path and self.keyvalue:
@@ -84,7 +81,8 @@ class FileLockerGui: #Created class FileLockerGui for the gui
     def encrypt(self):    
         #MAKE THIS TAKE A FILE 
 
-        plaintext = self.inputvalue.encode("utf-8")
+        file = self.file_path
+        plaintext = open(file, "rb").read()
         key = sha256(self.keyvalue.encode("utf-8")).digest()
 
         cipher = AES.new(key, AES.MODE_ECB)
@@ -94,7 +92,8 @@ class FileLockerGui: #Created class FileLockerGui for the gui
 
         ciphertext = cipher.encrypt(plaintext)
         base64_ciphertext = base64.b64encode(ciphertext).decode("utf-8") #Encode the bytes in base64 and decode the base64 bytes into string
-        tk.messagebox.showinfo("Success", "Encrypted String: " + base64_ciphertext)
+        tk.messagebox.showinfo("Success", "Encrypted String: " + base64_ciphertext + "\n was copied to your clipboard!")
+
 
     
 
@@ -115,7 +114,7 @@ def decrypt():
     print(plaintext.decode("utf-8"))   
 
     
-if __name__ == '__main__':
+if __name__ == "__main__":
     root = tk.Tk()
     FileLockerGui(root)
     root.mainloop()
