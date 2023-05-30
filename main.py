@@ -1,19 +1,17 @@
-import os
 from hashlib import sha256
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from Crypto.Cipher import AES
-import base64
 
 
 class FileLockerGui: 
-    """Class used for the tkinter gui"""
+    """Class used to customise the tkinter gui and process encryption/decryption requests."""
     def __init__(self, root):
         self.root = root 
-        root.title("FileLocker") #Name the window to "FileLocker"
-        root.minsize(300, 0) #The minimum width is 400px
-        root.resizable(0,0) #You can not resize the window
+        root.title("FileLocker") # Name the main window to "FileLocker"
+        root.minsize(300, 0) # The minimum width is 400px
+        root.resizable(0,0) # You can not resize the window
 
         self.file_path = None
         self.file_select = ttk.Button(root, text = "Select File", command = self.select_file) #file select button
@@ -50,73 +48,106 @@ class FileLockerGui:
 
 
     def toggle_key_visibility(self):
-        """Toggle key visibility based on checkbox state"""
+        """Toggle key visibility based on checkbox state."""
         if self.show_key.get() == 1:
             self.key_entry.configure(show = "")
         else:
             self.key_entry.configure(show = "*")
     
     def select_file(self):
-        """Open windows file select"""
+        """Open OS file selection."""
         self.file_path = filedialog.askopenfilename() 
         self.filepath_display.configure(text = self.file_path)
     
     def process(self):
-
+        """Processes the user request."""
         if self.key_entry.get() != "":
             self.keyvalue = self.key_entry.get()
         if self.file_path and self.keyvalue:
             operation = self.operation.get()
             if operation == "Encrypt":
 
-                self.encrypt()
+                self.ecb_encrypt()
             elif operation == "Decrypt":
-                # Perform decryption on selected file
-                pass
-            # tk.messagebox.showinfo("Success", f"File {operation}ed successfully!")
+                
+                self.ecb_decrypt()
         else:
             # Display error message if file path or key is not provided
             tk.messagebox.showerror("Error", "Please provide a file and key.")
 
-    def encrypt(self):    
-        #MAKE THIS TAKE A FILE 
+    def ecb_encrypt(self):    
+        """Method used to encrypt with AES mode ECB."""
 
-        file = self.file_path
-        plaintext = open(file, "rb").read()
-        key = sha256(self.keyvalue.encode("utf-8")).digest()
+        try:
+            filedata = open(self.file_path, "rb").read()
+        except:
+            tk.messagebox.showerror("Error", "File doesn't exist.")
 
-        cipher = AES.new(key, AES.MODE_ECB)
-        if len(plaintext) % AES.block_size != 0:
-            plaintext = plaintext + b'\0' * (AES.block_size - len(plaintext) % AES.block_size)
+        key = sha256(self.keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
 
+        cipher = AES.new(key, AES.MODE_ECB) # Creates a new cipher, and specifies the key & AES mode to use.
 
-        ciphertext = cipher.encrypt(plaintext)
-        base64_ciphertext = base64.b64encode(ciphertext).decode("utf-8") #Encode the bytes in base64 and decode the base64 bytes into string
-        tk.messagebox.showinfo("Success", "Encrypted String: " + base64_ciphertext + "\n was copied to your clipboard!")
+        padding = (AES.block_size - len(filedata) % AES.block_size)
 
 
-    
+        if len(filedata) == 0:
+            tk.messagebox.showerror("Error", "File is empty.")
+            return
+        elif len(filedata) % AES.block_size != 0:
+            filedata = filedata + b'\0' * padding
+
+        encryptedData = cipher.encrypt(filedata)
+
+        try:
+            newfilepath = self.file_path + ".lkd"
+            newfile = open(newfilepath, "x").close()
+            newfile = open(newfilepath, "wb+")
+            padding = int.to_bytes(padding)
+            newfile.write(padding + encryptedData)
+            tk.messagebox.showinfo("Success", "File has been encrypted!")
+        except:
+            tk.messagebox.showerror("Error", "File already exists.")
 
 
+    def ecb_decrypt(self):
+        """Method used to decrypt with AES mode ECB."""
+        
+        encryptedData = open(self.file_path, "rb").read()
 
-def decrypt():
-    base64_ciphertext = input('Enter Data you want to decrypt:\n> ')
-    ciphertext = base64.b64decode(base64_ciphertext)
-    pw = input('Enter key:\n> ')
-    pw = pw.encode("utf-8")
-    key = sha256(pw).digest()
+        key = sha256(self.keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
 
-    cipher = AES.new(key, AES.MODE_ECB)
-    plaintext = cipher.decrypt(ciphertext)
-    
-    plaintext = plaintext.rstrip(b'\0')
+        cipher = AES.new(key, AES.MODE_ECB) # Creates a new cipher, and specifies the key & AES mode to use.
 
-    print(plaintext.decode("utf-8"))   
+        if len(encryptedData) == 0:
+            tk.messagebox.showerror("Error", "File is empty.")
+            return
+        
+        padding = int.from_bytes(encryptedData[:1])
+        encryptedData = encryptedData[1:]
 
-    
+        filedata = cipher.decrypt(encryptedData)
+
+
+        filelen = len(filedata) - padding
+        filedata = filedata[:filelen]
+
+        try:
+            newfilepath = self.file_path.rstrip(".lkd")
+            newfile = open(newfilepath, "x").close()
+            newfile = open(newfilepath, "wb+")
+            newfile.write(filedata)
+            tk.messagebox.showinfo("Success", "File has been decrypted!")
+        except:
+            tk.messagebox.showerror("Error", "File already exists.")
+        
+        
+
+
+            
+        
 if __name__ == "__main__":
     root = tk.Tk()
     FileLockerGui(root)
     root.mainloop()
 
-#take a password, encrypt it in sha256, then encrypt the file/files with aes256 using the encrypted password string. Give encrypted file .LKD extension. Done using hashlib and pyCryptoDome. Also, apparently it is good to encode the AES encryption with base64 if using 'text-only channels'
+#take a password, encrypt it in sha256, then encrypt the file/files with aes256 using the encrypted password string. Give encrypted file .LKD extension. Done using hashlib and pyCryptoDome.
