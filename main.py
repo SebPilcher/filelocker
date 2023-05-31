@@ -4,39 +4,41 @@ from tkinter import ttk
 from tkinter import filedialog
 from Crypto.Cipher import AES
 
+# Imports all the non-core libraries used to make the program.
 
 class FileLockerGui: 
     """Class used to customise the tkinter gui and process encryption/decryption requests."""
+
     def __init__(self, root):
         self.root = root 
         root.title("FileLocker") # Name the main window to "FileLocker"
-        root.minsize(300, 0) # The minimum width is 400px
+        root.minsize(300, 0) # The minimum width is 300px
         root.resizable(0,0) # You can not resize the window
 
-        self.file_path = None
-        self.file_select = ttk.Button(root, text = "Select File", command = self.select_file) #file select button
+        self.file_path = None # Defines the variable as null in order to check if it has been changed later on.
+        self.file_select = ttk.Button(root, text = "Select File", command = self.select_file) # File select button.
         self.file_select.pack(pady=5) 
     
-        self.filepath_display = tk.Label(root, text = "No file selected.") #displays the filepath of the selected file
+        self.filepath_display = tk.Label(root, text = "No file selected.") # Displays the path of the selected file.
         self.filepath_display.pack()
-
 
         self.key_frame = ttk.Frame(root)
         self.key_frame.pack(padx=10)
 
-        self.key_label = tk.Label(self.key_frame, text = "Key:") 
+        self.key_label = tk.Label(self.key_frame, text = "Key:")
         self.key_label.grid(column=1, row=1)
 
-        self.key_entry = tk.Entry(self.key_frame, show = "*") #password entry
+        self.key_entry = tk.Entry(self.key_frame, show = "*") # Entry box for the key.
         self.key_entry.grid(column=2,row=1)
 
         self.show_key = tk.IntVar()
-        self.show_key_checkbox = ttk.Checkbutton(self.key_frame, text = "Show Key", variable=self.show_key, command = self.toggle_key_visibility) #password show button
+        self.show_key_checkbox = ttk.Checkbutton(self.key_frame, text = "Show Key", variable=self.show_key, command = self.toggle_key_visibility) # Key visibility toggle.
         self.show_key_checkbox.grid(column=2, row=2)
 
         self.operation = tk.StringVar(value="Choose an Option")
-        self.button_frame = ttk.Frame(root)
+        self.button_frame = ttk.Frame(root) # Frame to group the buttons together.
         self.button_frame.pack(pady=5)
+
         self.encrypt_button = ttk.Radiobutton(self.button_frame, text = "Encrypt", variable = self.operation, value = "Encrypt")
         self.encrypt_button.grid(column=1, row=1)
         self.decrypt_button = ttk.Radiobutton(self.button_frame, text = "Decrypt", variable = self.operation, value = "Decrypt")
@@ -47,98 +49,146 @@ class FileLockerGui:
         self.process_button.pack(pady=5)
 
 
+
     def toggle_key_visibility(self):
         """Toggle key visibility based on checkbox state."""
+
         if self.show_key.get() == 1:
             self.key_entry.configure(show = "")
         else:
             self.key_entry.configure(show = "*")
     
+
+
     def select_file(self):
         """Open OS file selection."""
+
         self.file_path = filedialog.askopenfilename() 
+
         self.filepath_display.configure(text = self.file_path)
     
+
+
     def process(self):
         """Processes the user request."""
-        if self.key_entry.get() != "":
-            self.keyvalue = self.key_entry.get()
-        if self.file_path and self.keyvalue:
-            operation = self.operation.get()
-            if operation == "Encrypt":
 
-                self.ecb_encrypt()
+        if self.key_entry.get() != "":
+            keyvalue = self.key_entry.get()
+
+
+        if self.file_path and keyvalue:
+
+            operation = self.operation.get()
+
+            if operation == "Encrypt":
+                self.ecb_encrypt(keyvalue)
             elif operation == "Decrypt":
-                
-                self.ecb_decrypt()
+                self.ecb_decrypt(keyvalue)
+
         else:
-            # Display error message if file path or key is not provided
+            # Displays an error message if file path or key is not provided.
             tk.messagebox.showerror("Error", "Please provide a file and key.")
 
-    def ecb_encrypt(self):    
+
+
+    def ecb_encrypt(self, keyvalue):    
         """Method used to encrypt with AES mode ECB."""
 
-        try:
+        try: # Reads the file binary. 
             filedata = open(self.file_path, "rb").read()
-        except:
-            tk.messagebox.showerror("Error", "File doesn't exist.")
+        except: # Displays an error message if file can't be read.
+            tk.messagebox.showerror("Error", "File doesn't exist or can't be viewed.")
+            return
 
-        key = sha256(self.keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
+
+        if self.file_path[(len(self.file_path)-4):] == ".lkd": # Checks if file has the extension .lkd (encrypted).
+            tk.messagebox.showerror("Error", "File is already encrypted.")
+            return
+
+        
+        key = sha256(keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
 
         cipher = AES.new(key, AES.MODE_ECB) # Creates a new cipher, and specifies the key & AES mode to use.
 
-        padding = (AES.block_size - len(filedata) % AES.block_size)
+        padding = (AES.block_size - len(filedata) % AES.block_size) # Calculates the amount of padding to be done.
 
 
-        if len(filedata) == 0:
+        if len(filedata) == 0: # Checks if the file contains more than 0 bytes of data, displays an error message if there is no data inside the file.
             tk.messagebox.showerror("Error", "File is empty.")
             return
-        elif len(filedata) % AES.block_size != 0:
+        elif len(filedata) % AES.block_size != 0: # Checks if the amount of bytes isn't a multiple of 16, and adds the missing amount of bytes to the file in the form of null bytes (\x00).
             filedata = filedata + b'\0' * padding
 
-        encryptedData = cipher.encrypt(filedata)
+
+        encryptedData = cipher.encrypt(filedata) # Encrypts the file.
+
 
         try:
-            newfilepath = self.file_path + ".lkd"
-            newfile = open(newfilepath, "x").close()
-            newfile = open(newfilepath, "wb+")
-            padding = int.to_bytes(padding)
-            newfile.write(padding + encryptedData)
-            tk.messagebox.showinfo("Success", "File has been encrypted!")
-        except:
-            tk.messagebox.showerror("Error", "File already exists.")
+            newfilepath = self.file_path + ".lkd" # Adds the .lkd extension to the current filepath.
+
+            newfile = open(newfilepath, "x").close() # Creates the new file at the new filepath.
+
+            newfile = open(newfilepath, "wb+") # Writes the encrypted binary to the file.
+
+            padding = int.to_bytes(padding) # Converts the padding integer to bytes.
+
+            newfile.write(padding + encryptedData) # Adds an 8-bit integer to the start of the file, containing the amount of null bytes. (From 1-15).
+
+            tk.messagebox.showinfo("Success", "File has been encrypted!") # Displays a popup confirming the success of the encryption.
+        except: # If the file creation fails, it will display an error message.
+            tk.messagebox.showerror("Error", "File already exists.") 
+            return
 
 
-    def ecb_decrypt(self):
+
+    def ecb_decrypt(self, keyvalue):
         """Method used to decrypt with AES mode ECB."""
         
-        encryptedData = open(self.file_path, "rb").read()
 
-        key = sha256(self.keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
+        if self.file_path[(len(self.file_path)-4):] != ".lkd": # Checks if the selected file's extension is not .lkd (encrypted), and displays an error if so.
+            tk.messagebox.showerror("Error", "File is already decrypted.") 
+            return
+
+
+        try: # Copies the encrypted data from the file, and displays an error if the file doesn't exist or can't be viewed.
+            encryptedData = open(self.file_path, "rb").read()
+        except:
+            tk.messagebox.showerror("Error", "File doesn't exist or can't be viewed.")
+            return
+        
+        key = sha256(keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
 
         cipher = AES.new(key, AES.MODE_ECB) # Creates a new cipher, and specifies the key & AES mode to use.
 
-        if len(encryptedData) == 0:
+
+        if len(encryptedData) == 0: # Checks if the file contains more than 0 bytes of data, displays an error message if there is no data inside the file.
             tk.messagebox.showerror("Error", "File is empty.")
             return
         
-        padding = int.from_bytes(encryptedData[:1])
-        encryptedData = encryptedData[1:]
 
-        filedata = cipher.decrypt(encryptedData)
+        padding = int.from_bytes(encryptedData[:1]) # Saves the number stored at the start of the encrypted file.
 
+        encryptedData = encryptedData[1:] # Removes the number from the file.
 
-        filelen = len(filedata) - padding
-        filedata = filedata[:filelen]
+        filedata = cipher.decrypt(encryptedData) # Decrypts the data in the file.
+
+        filelen = len(filedata) - padding # Gets the length of the original file without padding, by using the stored number.
+
+        filedata = filedata[:filelen] # Removes the extra padding.
 
         try:
-            newfilepath = self.file_path.rstrip(".lkd")
-            newfile = open(newfilepath, "x").close()
-            newfile = open(newfilepath, "wb+")
-            newfile.write(filedata)
+            newfilepath = self.file_path[:(len(self.file_path)-4)] # Removes the last 4 letters of the encrypted file's path string (encrypted file extension).
+
+            newfile = open(newfilepath, "x").close() # Creates the new file.
+
+            newfile = open(newfilepath, "wb+") # Opens the file and makes it able to be written to in binary.
+
+            newfile.write(filedata) # Writes the binary to the file.
+
             tk.messagebox.showinfo("Success", "File has been decrypted!")
         except:
             tk.messagebox.showerror("Error", "File already exists.")
+            return
         
         
 
@@ -147,7 +197,7 @@ class FileLockerGui:
         
 if __name__ == "__main__":
     root = tk.Tk()
-    FileLockerGui(root)
-    root.mainloop()
+    FileLockerGui(root) # Initiates the FileLockerGui class and passes the root variable to the __init__ module.
+    root.mainloop() # Starts the gui.
 
 #take a password, encrypt it in sha256, then encrypt the file/files with aes256 using the encrypted password string. Give encrypted file .LKD extension. Done using hashlib and pyCryptoDome.
