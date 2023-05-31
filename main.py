@@ -1,3 +1,4 @@
+import random
 from hashlib import sha256
 import tkinter as tk
 from tkinter import ttk
@@ -49,8 +50,7 @@ class FileLockerGui:
         self.process_button.pack(pady=5)
 
 
-
-    def toggle_key_visibility(self):
+    def toggle_key_visibility(self): 
         """Toggle key visibility based on checkbox state."""
 
         if self.show_key.get() == 1:
@@ -72,43 +72,44 @@ class FileLockerGui:
     def process(self):
         """Processes the user request."""
 
-        if self.key_entry.get() != "":
+        if self.key_entry.get() != "": # Checks if there has been a key inputted into the key_entry box, and makes keyvalue equal to the key if so.
             keyvalue = self.key_entry.get()
 
-
-        if self.file_path and keyvalue:
+        if self.file_path and keyvalue: # If the file has been selected, the key has been provided, and an operation has been chosen, either the encryption or decryption modules will be run.
 
             operation = self.operation.get()
 
             if operation == "Encrypt":
-                self.ecb_encrypt(keyvalue)
+                self.cbc_encrypt(keyvalue)
             elif operation == "Decrypt":
-                self.ecb_decrypt(keyvalue)
+                self.cbc_decrypt(keyvalue)
 
         else:
             # Displays an error message if file path or key is not provided.
-            tk.messagebox.showerror("Error", "Please provide a file and key.")
+            tk.messagebox.showerror("Error", "Please provide a file, key, and operation.")
 
 
 
-    def ecb_encrypt(self, keyvalue):    
-        """Method used to encrypt with AES mode ECB."""
+    def cbc_encrypt(self, keyvalue):    
+        """Method used to encrypt with AES mode CBC."""
 
         try: # Reads the file binary. 
             filedata = open(self.file_path, "rb").read()
         except: # Displays an error message if file can't be read.
-            tk.messagebox.showerror("Error", "File doesn't exist or can't be viewed.")
+            tk.messagebox.showerror("Error", "Something went wrong when opening the file.")
             return
 
 
-        if self.file_path[(len(self.file_path)-4):] == ".lkd": # Checks if file has the extension .lkd (encrypted).
+        if self.file_path[-4:] == ".lkd": # Checks if file has the extension .lkd (encrypted).
             tk.messagebox.showerror("Error", "File is already encrypted.")
             return
 
         
         key = sha256(keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
 
-        cipher = AES.new(key, AES.MODE_ECB) # Creates a new cipher, and specifies the key & AES mode to use.
+        iv = random.randbytes(16) # Generates a random initialization vector to be used in the encryption. Used to randomise the encryption and remove patterns.
+
+        cipher = AES.new(key, AES.MODE_CBC, iv) # Creates a new cipher, and specifies the key & AES mode to use.
 
         padding = (AES.block_size - len(filedata) % AES.block_size) # Calculates the amount of padding to be done.
 
@@ -122,7 +123,6 @@ class FileLockerGui:
 
         encryptedData = cipher.encrypt(filedata) # Encrypts the file.
 
-
         try:
             newfilepath = self.file_path + ".lkd" # Adds the .lkd extension to the current filepath.
 
@@ -132,7 +132,7 @@ class FileLockerGui:
 
             padding = int.to_bytes(padding) # Converts the padding integer to bytes.
 
-            newfile.write(padding + encryptedData) # Adds an 8-bit integer to the start of the file, containing the amount of null bytes. (From 1-15).
+            newfile.write(iv + padding + encryptedData) # Adds the iv, along with an 8-bit integer to the start of the file, containing the amount of null bytes. (From 1-16).
 
             tk.messagebox.showinfo("Success", "File has been encrypted!") # Displays a popup confirming the success of the encryption.
         except: # If the file creation fails, it will display an error message.
@@ -141,8 +141,8 @@ class FileLockerGui:
 
 
 
-    def ecb_decrypt(self, keyvalue):
-        """Method used to decrypt with AES mode ECB."""
+    def cbc_decrypt(self, keyvalue):
+        """Method used to decrypt with AES mode CBC."""
         
 
         if self.file_path[(len(self.file_path)-4):] != ".lkd": # Checks if the selected file's extension is not .lkd (encrypted), and displays an error if so.
@@ -153,12 +153,15 @@ class FileLockerGui:
         try: # Copies the encrypted data from the file, and displays an error if the file doesn't exist or can't be viewed.
             encryptedData = open(self.file_path, "rb").read()
         except:
-            tk.messagebox.showerror("Error", "File doesn't exist or can't be viewed.")
+            tk.messagebox.showerror("Error", "Something went wrong when opening the file.")
             return
         
-        key = sha256(keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256
+        iv = encryptedData[:16] # Takes the first 16 bytes of the file that contain the iv, and saves it in the iv variable.
+        encryptedData = encryptedData[16:] # Removes the iv from the file.
 
-        cipher = AES.new(key, AES.MODE_ECB) # Creates a new cipher, and specifies the key & AES mode to use.
+        key = sha256(keyvalue.encode("utf-8")).digest() # Encodes the string given by the user and hashes it with sha256.
+
+        cipher = AES.new(key, AES.MODE_CBC, iv) # Creates a new cipher, and specifies the key & AES mode to use.
 
 
         if len(encryptedData) == 0: # Checks if the file contains more than 0 bytes of data, displays an error message if there is no data inside the file.
@@ -172,12 +175,10 @@ class FileLockerGui:
 
         filedata = cipher.decrypt(encryptedData) # Decrypts the data in the file.
 
-        filelen = len(filedata) - padding # Gets the length of the original file without padding, by using the stored number.
-
-        filedata = filedata[:filelen] # Removes the extra padding.
+        filedata = filedata[:-padding] # Removes the extra padding.
 
         try:
-            newfilepath = self.file_path[:(len(self.file_path)-4)] # Removes the last 4 letters of the encrypted file's path string (encrypted file extension).
+            newfilepath = self.file_path[:-4] # Removes the last 4 letters of the encrypted file's path string (encrypted file extension).
 
             newfile = open(newfilepath, "x").close() # Creates the new file.
 
@@ -186,18 +187,16 @@ class FileLockerGui:
             newfile.write(filedata) # Writes the binary to the file.
 
             tk.messagebox.showinfo("Success", "File has been decrypted!")
-        except:
+        except: # If the file creation fails, it will display an error message.
             tk.messagebox.showerror("Error", "File already exists.")
             return
         
         
 
 
-            
+
         
 if __name__ == "__main__":
     root = tk.Tk()
     FileLockerGui(root) # Initiates the FileLockerGui class and passes the root variable to the __init__ module.
-    root.mainloop() # Starts the gui.
-
-#take a password, encrypt it in sha256, then encrypt the file/files with aes256 using the encrypted password string. Give encrypted file .LKD extension. Done using hashlib and pyCryptoDome.
+    root.mainloop() # Opens the gui.
