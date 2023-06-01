@@ -1,0 +1,3 @@
+#run:   py -m pip install -r requirements.txt
+tk
+pycryptodome >= 3.17
