@@ -40,14 +40,17 @@ class FileLockerGui:
         self.button_frame = ttk.Frame(root) # Frame to group the buttons together.
         self.button_frame.pack(pady=5)
 
-        self.encrypt_button = ttk.Radiobutton(self.button_frame, text = "Encrypt", variable = self.operation, value = "Encrypt")
+        self.encrypt_button = ttk.Radiobutton(self.button_frame, text = "Encrypt", variable = self.operation, value = "Encrypt") # Encryption and Decryption options.
         self.encrypt_button.grid(column=1, row=1)
         self.decrypt_button = ttk.Radiobutton(self.button_frame, text = "Decrypt", variable = self.operation, value = "Decrypt")
         self.decrypt_button.grid(column=2, row=1)
 
 
-        self.process_button = ttk.Button(root, textvariable=self.operation, command=self.process)
+        self.process_button = ttk.Button(root, textvariable=self.operation, command=self.process) # Process button.
         self.process_button.pack(pady=5)
+
+        tk.messagebox.showinfo("Welcome!", "Welcome to filelocker. If you want to encrypt a folder, send it to a .zip file before encrypting.")
+
 
 
     def toggle_key_visibility(self): 
@@ -63,7 +66,7 @@ class FileLockerGui:
     def select_file(self):
         """Open OS file selection."""
 
-        self.file_path = filedialog.askopenfilename() 
+        self.file_path = filedialog.askopenfilename() # Uses the OS's inbuilt file selection.
 
         self.filepath_display.configure(text = self.file_path)
     
