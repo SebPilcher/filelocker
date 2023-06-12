@@ -5,7 +5,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from Crypto.Cipher import AES
 
-# Imports all the non-core libraries used to make the program.
+# Imports all the libraries used in the program.
 
 class FileLockerGui: 
     """Class used to customise the tkinter gui and process encryption/decryption requests."""
@@ -16,11 +16,12 @@ class FileLockerGui:
         root.minsize(300, 0) # The minimum width is 300px
         root.resizable(0,0) # You can not resize the window
 
+
         self.file_path = None # Defines the variable as null in order to check if it has been changed later on.
         self.file_select = ttk.Button(root, text = "Select File", command = self.select_file) # File select button.
         self.file_select.pack(pady=5) 
     
-        self.filepath_display = tk.Label(root, text = "No file selected.") # Displays the path of the selected file.
+        self.filepath_display = tk.Label(root, text = "No file selected.", wraplength=400) # Displays the path of the selected file.
         self.filepath_display.pack()
 
         self.key_frame = ttk.Frame(root)
@@ -74,6 +75,8 @@ class FileLockerGui:
 
     def process(self):
         """Processes the user request."""
+
+        keyvalue = ""
 
         if self.key_entry.get() != "": # Checks if there has been a key inputted into the key_entry box, and makes keyvalue equal to the key if so.
             keyvalue = self.key_entry.get()
@@ -137,11 +140,15 @@ class FileLockerGui:
 
             newfile.write(iv + padding + encryptedData) # Adds the iv, along with an 8-bit integer to the start of the file, containing the amount of null bytes. (From 1-16).
 
-            tk.messagebox.showinfo("Success", "File has been encrypted!") # Displays a popup confirming the success of the encryption.
-        except: # If the file creation fails, it will display an error message.
-            tk.messagebox.showerror("Error", "File already exists.") 
-            return
+            newfile.close() # Closes the file and saves the changes.
 
+            tk.messagebox.showinfo("Success", "File has been encrypted!") # Displays a popup confirming the success of the encryption. 
+
+        except: # If the file creation fails, it will display an error message.
+            tk.messagebox.showerror("Error", "Something went wrong when creating the file. (Does file already exist?)") 
+            return
+        
+        
 
 
     def cbc_decrypt(self, keyvalue):
@@ -158,7 +165,14 @@ class FileLockerGui:
         except:
             tk.messagebox.showerror("Error", "Something went wrong when opening the file.")
             return
-        
+
+        if len(encryptedData) == 0: # Checks if the file contains more than 0 bytes of data, displays an error message if there is no data inside the file.
+            tk.messagebox.showerror("Error", "File is empty.")
+            return
+        elif (len(encryptedData)-17)%16 != 0: # Checks if there is an iv and padding number present. Every file encrypted by this program will have a file length equal to 16n+17.
+            tk.messagebox.showerror("Error", "Not a valid file.")
+            return
+
         iv = encryptedData[:16] # Takes the first 16 bytes of the file that contain the iv, and saves it in the iv variable.
         encryptedData = encryptedData[16:] # Removes the iv from the file.
 
@@ -189,13 +203,16 @@ class FileLockerGui:
 
             newfile.write(filedata) # Writes the binary to the file.
 
-            tk.messagebox.showinfo("Success", "File has been decrypted!")
+            newfile.close() # Closes the file and saves the changes.
+
         except: # If the file creation fails, it will display an error message.
-            tk.messagebox.showerror("Error", "File already exists.")
+            tk.messagebox.showerror("Error", "Something went wrong when creating the file. (Does file already exist?)")
+    
             return
         
+        tk.messagebox.showinfo("Success", "File has been decrypted!")
         
-
+    
 
 
         
