@@ -66,8 +66,6 @@ class FileLockerGui:
         self.process_button = ttk.Button(root, textvariable=self.operation, command=self.process)  # Process button.
         self.process_button.pack(pady=self.padding)
 
-
-
         root.update()
         tk.messagebox.showinfo("Welcome!", "Welcome to filelocker. If you want to encrypt a folder, send it to a .zip file before encrypting.")
 
