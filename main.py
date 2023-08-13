@@ -126,18 +126,16 @@ class FileLockerGui:
         # Generates a random initialization vector to be used in the encryption. Used to randomise the encryption and remove patterns.
 
         cipher = AES.new(key, self.mode, iv)
-
+    
         padding = (AES.block_size - len(filedata) % AES.block_size)
         # Calculates the amount of padding to be done.
-
         if len(filedata) == 0:
             tk.messagebox.showerror(self.ERR_MSG1, "File is empty.")
             return
-        elif len(filedata) % AES.block_size != 0:
+        elif padding != 0:
             filedata = filedata + b'\0' * padding
 
         encrypteddata = cipher.encrypt(filedata)
-
         try:
             newfilepath = self.file_path + ".lkd"
 
@@ -148,7 +146,6 @@ class FileLockerGui:
             padding = int.to_bytes(padding)
 
             newfile.write(iv + padding + encrypteddata)
-
             newfile.close()
 
             tk.messagebox.showinfo("Success", "File has been encrypted!")
@@ -197,15 +194,19 @@ class FileLockerGui:
 
         padding = int.from_bytes(encrypteddata[:1])
         # Saves the number stored at the start of the encrypted file.
-
         encrypteddata = encrypteddata[1:]
+        print(len(encrypteddata))
         # Removes the number from the file.
 
         filedata = cipher.decrypt(encrypteddata)
+        print(len(encrypteddata))
+        print(len(filedata))
 
         filedata = filedata[:-padding]
         # Removes the extra padding.
-
+        print(len(encrypteddata))
+        print(len(filedata))
+        print("padding: " + str(padding))
         try:
             newfilepath = self.file_path[:-4]
 
