@@ -132,8 +132,10 @@ class FileLockerGui:
         if len(filedata) == 0:
             tk.messagebox.showerror(self.ERR_MSG1, "File is empty.")
             return
-        elif padding != 0:
+        elif padding != 16:
             filedata = filedata + b'\0' * padding
+        elif padding == 16:
+            padding = 0
 
         encrypteddata = cipher.encrypt(filedata)
         try:
@@ -195,18 +197,13 @@ class FileLockerGui:
         padding = int.from_bytes(encrypteddata[:1])
         # Saves the number stored at the start of the encrypted file.
         encrypteddata = encrypteddata[1:]
-        print(len(encrypteddata))
         # Removes the number from the file.
 
         filedata = cipher.decrypt(encrypteddata)
-        print(len(encrypteddata))
-        print(len(filedata))
 
-        filedata = filedata[:-padding]
+        if padding != 0:
+            filedata = filedata[:-padding]
         # Removes the extra padding.
-        print(len(encrypteddata))
-        print(len(filedata))
-        print("padding: " + str(padding))
         try:
             newfilepath = self.file_path[:-4]
 
