@@ -1,4 +1,4 @@
 # written on python 3.11.2
 #run:   py -m pip install -r requirements.txt
-tk
-pycryptodome >= 3.17
+tk == 0.1.0
+pycryptodome == 3.18.0
